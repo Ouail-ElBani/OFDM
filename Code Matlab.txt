@@ -1,0 +1,59 @@
+% Paramètres OFDM
+N = 64;               % Nombre de sous-porteuses
+SNR_dB = 20;           % Rapport signal/bruit en dB
+
+% Génération des données à transmettre (BPSK)
+data = randi([0 1], 1, N);
+
+% Modulation BPSK
+modulated_data = 2 * data - 1;
+
+% Transformée de Fourier discrète (FFT)
+ofdm_symbols = fft(modulated_data, N);
+
+% Ajout de préfixes cycliques pour créer une séquence OFDM
+prefix_length = 16;
+ofdm_sequence = [ofdm_symbols(end-prefix_length+1:end), ofdm_symbols];
+
+% Canal AWGN (bruit gaussien blanc additif)
+SNR = 10^(SNR_dB/10);
+noise_power = 1 / (SNR * 2 * N);
+noise = sqrt(noise_power) * (randn(1, N + prefix_length) + 1i * randn(1, N + prefix_length));
+
+% Transmission à travers le canal
+received_sequence = ofdm_sequence + noise;
+
+% Affichage des résultats
+figure;
+subplot(2,1,1);
+stem(data, 'LineWidth', 2);
+title('Données à transmettre');
+
+subplot(2,1,2);
+plot(abs(ofdm_sequence), 'LineWidth', 2);
+title('Signal OFDM transmis');
+
+% Suppression des préfixes cycliques
+received_symbols = received_sequence(prefix_length+1:end);
+
+% Transformée de Fourier discrète inverse (IFFT)
+demodulated_data = ifft(received_symbols, N);
+
+% Décodage BPSK
+decoded_data = real(demodulated_data) > 0;
+
+% Affichage des résultats
+figure;
+subplot(2,1,1);
+plot(abs(received_sequence), 'LineWidth', 2);
+title('Signal OFDM reçu');
+
+subplot(2,1,2);
+stem(decoded_data, 'r', 'LineWidth', 2);
+title('Données décodées');
+
+% Calcul du taux d'erreur binaire (BER)
+error_bits = sum(abs(decoded_data - data));
+BER = error_bits / N;
+
+disp(['Taux d''erreur binaire (BER): ', num2str(BER)]);
